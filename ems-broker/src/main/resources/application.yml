@@ -1,0 +1,48 @@
+server:
+  port: 8086
+
+spring:
+  application:
+    name: ems-broker
+  artemis:
+    mode: embedded
+    embedded:
+      enabled: true
+      persistent: false
+      # Pre-created EMS-style destinations (anycast queues)
+      queues: TB.ORDERS.OUT,TB.ORDERS.CANCEL,TB.ORDERS.AUDIT,ERP.ORDERS.IN
+  jms:
+    template:
+      receive-timeout: 5s
+    cache:
+      enabled: true
+  jackson:
+    default-property-inclusion: non_null
+    serialization:
+      write-dates-as-timestamps: false
+
+simulator:
+  publish-rate-per-min: ${PUBLISH_RATE_PER_MIN:6}
+  orders-destination: TB.ORDERS.OUT
+  cancel-destination: TB.ORDERS.CANCEL
+  audit-destination: TB.ORDERS.AUDIT
+  acceptor-url: ${ARTEMIS_ACCEPTOR_URL:tcp://0.0.0.0:61616}
+  remember-orders: 1000
+  seed: ${SIMULATOR_SEED:0}
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics
+  endpoint:
+    health:
+      probes:
+        enabled: true
+      show-details: always
+
+logging:
+  level:
+    root: INFO
+    org.apache.activemq.artemis: WARN
+    com.tailoredbrands: INFO

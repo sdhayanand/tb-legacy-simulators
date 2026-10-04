@@ -1,0 +1,15 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: erp-mq-consumer
+data:
+  SERVER_PORT: "8087"
+  SPRING_PROFILES_ACTIVE: "default"
+  JMS_PROVIDER: "ibmmq"
+  MQ_HOST: "ibm-mq.legacy.svc.cluster.local"
+  MQ_PORT: "1414"
+  MQ_QMGR: "QM1"
+  MQ_CHANNEL: "DEV.APP.SVRCONN"
+  MQ_USER: "app"
+  MQ_QUEUE: "ERP.ORDERS.IN"
+  JMS_CONCURRENCY: "1-3"

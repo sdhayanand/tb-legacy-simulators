@@ -1,0 +1,9 @@
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: erp-mq-consumer
+spec:
+  maxUnavailable: 1
+  selector:
+    matchLabels:
+      app: erp-mq-consumer

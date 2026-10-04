@@ -1,0 +1,7 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: ems-broker
+data:
+  SPRING_PROFILES_ACTIVE: "gcp"
+  PUBLISH_RATE_PER_MIN: "6"

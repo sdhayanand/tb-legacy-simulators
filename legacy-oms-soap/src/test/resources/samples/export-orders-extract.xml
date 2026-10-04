@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Shape of the nightly extract file written to gs://<bucket>/legacy-oms/extracts/orders-<date>.xml -->
+<Orders xmlns="http://tailoredbrands.com/legacy/oms/v1" ExtractDate="2026-10-01" Count="2">
+  <Order>
+    <OrderNbr>0412-261001-724001</OrderNbr>
+    <OrderType>R</OrderType>
+    <StoreNbr>0412</StoreNbr>
+    <OrderDate>2026-10-01</OrderDate>
+    <Status>RELEASED</Status>
+    <Lines>
+      <Line>
+        <LineNbr>1</LineNbr>
+        <SKU>MW-SUIT-NAVYPIN-46R</SKU>
+        <Qty>2</Qty>
+        <Price>649.99</Price>
+        <FulfillType>P</FulfillType>
+      </Line>
+    </Lines>
+  </Order>
+  <Order>
+    <OrderNbr>1820-261001-349001</OrderNbr>
+    <OrderType>X</OrderType>
+    <StoreNbr>1820</StoreNbr>
+    <CustNbr>C-94904</CustNbr>
+    <OrderDate>2026-10-01</OrderDate>
+    <EventDate>2026-11-21</EventDate>
+    <Status>RELEASED</Status>
+    <Lines>
+      <Line>
+        <LineNbr>1</LineNbr>
+        <SKU>MW-TUX-RENTAL-VEST-TIE</SKU>
+        <Qty>1</Qty>
+        <Price>34.99</Price>
+        <FulfillType>P</FulfillType>
+      </Line>
+      <Line>
+        <LineNbr>2</LineNbr>
+        <SKU>MW-TUX-RENTAL-GRY-44L</SKU>
+        <Qty>1</Qty>
+        <Price>179.99</Price>
+        <FulfillType>P</FulfillType>
+      </Line>
+    </Lines>
+  </Order>
+</Orders>

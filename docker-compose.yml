@@ -1,0 +1,120 @@
+# Local legacy estate:  docker compose up --build
+#   ems-broker       tcp://localhost:61616 (JMS)  http://localhost:8086 (sim API)
+#   legacy-oms-soap  http://localhost:8085/ws/oms.wsdl   http://localhost:8085/admin/orders
+#   ibm-mq           localhost:1414 (QM1 / DEV.APP.SVRCONN / app:passw0rd)  https://localhost:9443 (console, admin:passw0rd)
+#   erp-mq-consumer  http://localhost:8087/received   (consumes ERP.ORDERS.IN from IBM MQ)
+#
+# Profiles:
+#   --profile artemis-erp   erp-mq-consumer-artemis: a second ERP consumer on the Artemis fallback (no IBM MQ needed)
+#   --profile pos           store-pos-simulator posting to order-intake-api on the host (tb-integration-services)
+
+name: tb-legacy
+
+services:
+  ems-broker:
+    build:
+      context: .
+      dockerfile: ems-broker/Dockerfile
+    image: ghcr.io/sdhayanand/tb-ems-broker:local
+    environment:
+      PUBLISH_RATE_PER_MIN: "6"
+      ARTEMIS_ACCEPTOR_URL: "tcp://0.0.0.0:61616"
+    ports:
+      - "61616:61616"
+      - "8086:8086"
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "http://localhost:8086/actuator/health/readiness"]
+      interval: 15s
+      timeout: 5s
+      retries: 10
+      start_period: 40s
+
+  legacy-oms-soap:
+    build:
+      context: .
+      dockerfile: legacy-oms-soap/Dockerfile
+    image: ghcr.io/sdhayanand/tb-legacy-oms-soap:local
+    environment:
+      # Optional: mount a service-account key and set GOOGLE_APPLICATION_CREDENTIALS to make /admin/export-to-gcs work
+      OMS_EXTRACT_BUCKET: ""
+    ports:
+      - "8085:8085"
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "http://localhost:8085/actuator/health/readiness"]
+      interval: 15s
+      timeout: 5s
+      retries: 10
+      start_period: 40s
+
+  ibm-mq:
+    image: icr.io/ibm-messaging/mq:latest
+    environment:
+      LICENSE: accept
+      MQ_QMGR_NAME: QM1
+      MQ_APP_PASSWORD: passw0rd
+      MQ_ADMIN_PASSWORD: passw0rd
+    ports:
+      - "1414:1414"
+      - "9443:9443"
+    volumes:
+      - ./deploy/k8s/ibm-mq/20-tb.mqsc:/etc/mqm/20-tb.mqsc:ro
+      - mqdata:/mnt/mqm
+    healthcheck:
+      test: ["CMD", "chkmqready"]
+      interval: 10s
+      timeout: 5s
+      retries: 30
+      start_period: 60s
+
+  erp-mq-consumer:
+    build:
+      context: .
+      dockerfile: erp-mq-consumer/Dockerfile
+    image: ghcr.io/sdhayanand/tb-erp-mq-consumer:local
+    depends_on:
+      ibm-mq:
+        condition: service_healthy
+    environment:
+      JMS_PROVIDER: ibmmq
+      MQ_HOST: ibm-mq
+      MQ_PORT: "1414"
+      MQ_QMGR: QM1
+      MQ_CHANNEL: DEV.APP.SVRCONN
+      MQ_USER: app
+      MQ_PASSWORD: passw0rd
+      MQ_QUEUE: ERP.ORDERS.IN
+    ports:
+      - "8087:8087"
+
+  erp-mq-consumer-artemis:
+    profiles: ["artemis-erp"]
+    image: ghcr.io/sdhayanand/tb-erp-mq-consumer:local
+    build:
+      context: .
+      dockerfile: erp-mq-consumer/Dockerfile
+    depends_on:
+      ems-broker:
+        condition: service_healthy
+    environment:
+      JMS_PROVIDER: artemis
+      JMS_URL: tcp://ems-broker:61616
+      MQ_QUEUE: ERP.ORDERS.IN
+      SERVER_PORT: "8088"
+    ports:
+      - "8088:8088"
+
+  store-pos-simulator:
+    profiles: ["pos"]
+    build:
+      context: .
+      dockerfile: store-pos-simulator/Dockerfile
+    image: ghcr.io/sdhayanand/tb-store-pos-simulator:local
+    environment:
+      POS_TARGET: ${POS_TARGET:-http://host.docker.internal:8080}
+      POS_API_KEY: ${POS_API_KEY:-}
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    command: ["--count", "0", "--rate", "12"]
+
+volumes:
+  mqdata:

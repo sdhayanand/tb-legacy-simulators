@@ -1,0 +1,14 @@
+# GKE Autopilot: Artifact Registry images + Workload Identity annotations (PROJECT_ID is replaced by deploy-gcp.yml).
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+resources:
+  - ../../namespace
+  - ../../ibm-mq
+  - ../../../../legacy-oms-soap/deploy/k8s/overlays/gcp
+  - ../../../../ems-broker/deploy/k8s/overlays/gcp
+  - ../../../../erp-mq-consumer/deploy/k8s/overlays/gcp
+  - ../../../../store-pos-simulator/k8s
+images:
+  - name: ghcr.io/sdhayanand/tb-store-pos-simulator
+    newName: us-central1-docker.pkg.dev/PROJECT_ID/tb-otd/store-pos-simulator
+    newTag: latest

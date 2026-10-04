@@ -1,0 +1,68 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: erp-mq-consumer
+  labels:
+    app: erp-mq-consumer
+spec:
+  # Single replica: the "last 500 messages" view is in-memory. Scale out would need a shared store.
+  replicas: 1
+  selector:
+    matchLabels:
+      app: erp-mq-consumer
+  template:
+    metadata:
+      labels:
+        app: erp-mq-consumer
+    spec:
+      serviceAccountName: erp-mq-consumer
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+        runAsGroup: 1000
+        fsGroup: 1000
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+        - name: erp-mq-consumer
+          image: ghcr.io/sdhayanand/tb-erp-mq-consumer:latest
+          imagePullPolicy: Always
+          ports:
+            - name: http
+              containerPort: 8087
+          envFrom:
+            - configMapRef:
+                name: erp-mq-consumer
+          env:
+            - name: MQ_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: ibm-mq
+                  key: app-password
+          resources:
+            requests:
+              cpu: 200m
+              memory: 384Mi
+            limits:
+              cpu: 500m
+              memory: 640Mi
+          startupProbe:
+            httpGet:
+              path: /actuator/health/liveness
+              port: http
+            periodSeconds: 5
+            failureThreshold: 30
+          readinessProbe:
+            httpGet:
+              path: /actuator/health/readiness
+              port: http
+            periodSeconds: 10
+          livenessProbe:
+            httpGet:
+              path: /actuator/health/liveness
+              port: http
+            periodSeconds: 20
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop: ["ALL"]

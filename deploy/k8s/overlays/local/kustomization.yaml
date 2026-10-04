@@ -1,0 +1,13 @@
+# kind / minikube: locally built images tagged :local, ERP consumer on the Artemis fallback.
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+resources:
+  - ../../namespace
+  - ../../ibm-mq
+  - ../../../../legacy-oms-soap/deploy/k8s/overlays/local
+  - ../../../../ems-broker/deploy/k8s/overlays/local
+  - ../../../../erp-mq-consumer/deploy/k8s/overlays/local
+  - ../../../../store-pos-simulator/k8s
+images:
+  - name: ghcr.io/sdhayanand/tb-store-pos-simulator
+    newTag: local

@@ -1,0 +1,89 @@
+name: deploy-gcp
+on:
+  workflow_dispatch: {}
+  push:
+    branches: [main]
+permissions: { contents: read, id-token: write }
+
+# Repo variables set by tb-platform-infra bootstrap: GCP_PROJECT_ID, GCP_REGION, GKE_CLUSTER, AR_REPO
+# Repo secrets: GCP_WIF_PROVIDER, GCP_DEPLOYER_SA, (optional) MQ_APP_PASSWORD, MQ_ADMIN_PASSWORD, POS_API_KEY
+
+env:
+  REGION: ${{ vars.GCP_REGION || 'us-central1' }}
+  AR_REPO: ${{ vars.AR_REPO || 'tb-otd' }}
+  GKE_CLUSTER: ${{ vars.GKE_CLUSTER || 'tb-otd-autopilot' }}
+
+jobs:
+  images:
+    name: build images to Artifact Registry
+    if: vars.GCP_PROJECT_ID != ''
+    runs-on: ubuntu-latest
+    outputs:
+      ar: ${{ steps.vars.outputs.ar }}
+    steps:
+      - uses: actions/checkout@v4
+      - id: auth
+        uses: google-github-actions/auth@v2
+        with:
+          token_format: access_token
+          workload_identity_provider: ${{ secrets.GCP_WIF_PROVIDER }}
+          service_account: ${{ secrets.GCP_DEPLOYER_SA }}
+      - uses: google-github-actions/setup-gcloud@v2
+      - id: vars
+        run: echo "ar=${{ env.REGION }}-docker.pkg.dev/${{ vars.GCP_PROJECT_ID }}/${{ env.AR_REPO }}" >> "$GITHUB_OUTPUT"
+      - uses: actions/setup-java@v4
+        with: { distribution: temurin, java-version: '21', cache: maven }
+      - name: jib (3 Java simulators)
+        run: |
+          for m in legacy-oms-soap ems-broker erp-mq-consumer; do
+            mvn -B -ntp -DskipTests -pl "$m" -am jib:build \
+              -Dimage=${{ steps.vars.outputs.ar }}/$m:latest -Djib.to.tags=${{ github.sha }} \
+              -Djib.to.auth.username=oauth2accesstoken \
+              -Djib.to.auth.password=${{ steps.auth.outputs.access_token }}
+          done
+      - name: docker (store-pos-simulator)
+        run: |
+          gcloud auth configure-docker ${{ env.REGION }}-docker.pkg.dev --quiet
+          docker build -f store-pos-simulator/Dockerfile \
+            -t ${{ steps.vars.outputs.ar }}/store-pos-simulator:latest \
+            -t ${{ steps.vars.outputs.ar }}/store-pos-simulator:${{ github.sha }} .
+          docker push --all-tags ${{ steps.vars.outputs.ar }}/store-pos-simulator
+
+  deploy:
+    name: kubectl apply -k (namespace legacy)
+    needs: images
+    if: vars.GCP_PROJECT_ID != ''
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - id: auth
+        uses: google-github-actions/auth@v2
+        with:
+          workload_identity_provider: ${{ secrets.GCP_WIF_PROVIDER }}
+          service_account: ${{ secrets.GCP_DEPLOYER_SA }}
+      - uses: google-github-actions/setup-gcloud@v2
+        with: { install_components: gke-gcloud-auth-plugin }
+      - name: cluster credentials
+        run: gcloud container clusters get-credentials ${{ env.GKE_CLUSTER }} --region ${{ env.REGION }} --project ${{ vars.GCP_PROJECT_ID }}
+      - name: render overlays for this project
+        run: |
+          grep -rl PROJECT_ID --include='*.yaml' deploy legacy-oms-soap/deploy ems-broker/deploy erp-mq-consumer/deploy store-pos-simulator/k8s \
+            | xargs sed -i "s/PROJECT_ID/${{ vars.GCP_PROJECT_ID }}/g"
+      - name: namespace + secrets
+        run: |
+          kubectl apply -k deploy/k8s/namespace
+          kubectl -n legacy create secret generic ibm-mq \
+            --from-literal=app-password="${{ secrets.MQ_APP_PASSWORD || 'passw0rd' }}" \
+            --from-literal=admin-password="${{ secrets.MQ_ADMIN_PASSWORD || 'passw0rd' }}" \
+            --dry-run=client -o yaml | kubectl apply -f -
+          kubectl -n legacy create secret generic pos-simulator \
+            --from-literal=api-key="${{ secrets.POS_API_KEY || '' }}" \
+            --dry-run=client -o yaml | kubectl apply -f -
+      - name: apply
+        run: |
+          kubectl apply -k deploy/k8s/overlays/gcp
+          kubectl -n legacy rollout status statefulset/ibm-mq --timeout=600s
+          kubectl -n legacy rollout status deployment/ems-broker --timeout=300s
+          kubectl -n legacy rollout status deployment/legacy-oms-soap --timeout=300s
+          kubectl -n legacy rollout status deployment/erp-mq-consumer --timeout=300s
+          kubectl -n legacy get all

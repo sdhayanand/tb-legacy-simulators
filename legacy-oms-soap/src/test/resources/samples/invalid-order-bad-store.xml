@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Invalid on purpose: StoreNbr must be exactly 4 digits -->
+<Order xmlns="http://tailoredbrands.com/legacy/oms/v1">
+  <OrderNbr>BAD-1</OrderNbr>
+  <OrderType>R</OrderType>
+  <StoreNbr>41</StoreNbr>
+  <OrderDate>2026-10-03</OrderDate>
+  <Lines>
+    <Line>
+      <LineNbr>1</LineNbr>
+      <SKU>MW-SUIT-NAVY-42R</SKU>
+      <Qty>1</Qty>
+      <Price>599.99</Price>
+      <FulfillType>P</FulfillType>
+    </Line>
+  </Lines>
+</Order>

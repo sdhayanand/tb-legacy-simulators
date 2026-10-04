@@ -1,0 +1,7 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: legacy-oms-soap
+data:
+  SPRING_PROFILES_ACTIVE: "gcp"
+  OMS_EXTRACT_BUCKET: "PROJECT_ID-tb-otd-legacy-extracts"

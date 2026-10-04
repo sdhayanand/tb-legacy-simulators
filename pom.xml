@@ -1,0 +1,137 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
+  <modelVersion>4.0.0</modelVersion>
+
+  <parent>
+    <groupId>org.springframework.boot</groupId>
+    <artifactId>spring-boot-starter-parent</artifactId>
+    <version>3.5.6</version>
+    <relativePath/>
+  </parent>
+
+  <groupId>com.tailoredbrands.otd</groupId>
+  <artifactId>tb-legacy-simulators</artifactId>
+  <version>0.1.0-SNAPSHOT</version>
+  <packaging>pom</packaging>
+  <name>tb-legacy-simulators</name>
+  <description>Stand-ins for the legacy Oracle OMS (SOAP), TIBCO EMS/BusinessWorks and IBM MQ/ERP systems that the
+    Tailored Brands Order-to-Delivery migration starts from.</description>
+
+  <modules>
+    <module>legacy-oms-soap</module>
+    <module>ems-broker</module>
+    <module>erp-mq-consumer</module>
+  </modules>
+
+  <properties>
+    <java.version>21</java.version>
+    <maven.compiler.release>21</maven.compiler.release>
+    <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+    <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
+
+    <!-- Version pins from CONVENTIONS.md -->
+    <libraries-bom.version>26.60.0</libraries-bom.version>
+    <testcontainers.version>1.21.3</testcontainers.version>
+    <jib-maven-plugin.version>3.4.5</jib-maven-plugin.version>
+    <jaxb2-maven-plugin.version>3.2.0</jaxb2-maven-plugin.version>
+    <ibm-mq-client.version>9.4.2.0</ibm-mq-client.version>
+    <logstash-logback-encoder.version>8.1</logstash-logback-encoder.version>
+    <maven-surefire-plugin.version>3.5.3</maven-surefire-plugin.version>
+    <maven-failsafe-plugin.version>3.5.3</maven-failsafe-plugin.version>
+
+    <!-- Image naming: ghcr.io/sdhayanand/tb-<service>; overridden in CI with -Dimage=... -->
+    <image.registry>ghcr.io/sdhayanand</image.registry>
+    <image.tag>latest</image.tag>
+  </properties>
+
+  <dependencyManagement>
+    <dependencies>
+      <dependency>
+        <groupId>com.google.cloud</groupId>
+        <artifactId>libraries-bom</artifactId>
+        <version>${libraries-bom.version}</version>
+        <type>pom</type>
+        <scope>import</scope>
+      </dependency>
+      <dependency>
+        <groupId>org.testcontainers</groupId>
+        <artifactId>testcontainers-bom</artifactId>
+        <version>${testcontainers.version}</version>
+        <type>pom</type>
+        <scope>import</scope>
+      </dependency>
+      <dependency>
+        <groupId>com.ibm.mq</groupId>
+        <artifactId>com.ibm.mq.jakarta.client</artifactId>
+        <version>${ibm-mq-client.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>net.logstash.logback</groupId>
+        <artifactId>logstash-logback-encoder</artifactId>
+        <version>${logstash-logback-encoder.version}</version>
+      </dependency>
+    </dependencies>
+  </dependencyManagement>
+
+  <build>
+    <pluginManagement>
+      <plugins>
+        <plugin>
+          <groupId>org.apache.maven.plugins</groupId>
+          <artifactId>maven-surefire-plugin</artifactId>
+          <version>${maven-surefire-plugin.version}</version>
+          <configuration>
+            <!-- Unit tests only: anything named *IT runs under failsafe in the verify phase -->
+            <excludes>
+              <exclude>**/*IT.java</exclude>
+            </excludes>
+          </configuration>
+        </plugin>
+        <plugin>
+          <groupId>org.apache.maven.plugins</groupId>
+          <artifactId>maven-failsafe-plugin</artifactId>
+          <version>${maven-failsafe-plugin.version}</version>
+          <executions>
+            <execution>
+              <goals>
+                <goal>integration-test</goal>
+                <goal>verify</goal>
+              </goals>
+            </execution>
+          </executions>
+        </plugin>
+        <plugin>
+          <groupId>org.codehaus.mojo</groupId>
+          <artifactId>jaxb2-maven-plugin</artifactId>
+          <version>${jaxb2-maven-plugin.version}</version>
+        </plugin>
+        <plugin>
+          <groupId>com.google.cloud.tools</groupId>
+          <artifactId>jib-maven-plugin</artifactId>
+          <version>${jib-maven-plugin.version}</version>
+          <configuration>
+            <from>
+              <image>eclipse-temurin:21-jre</image>
+            </from>
+            <to>
+              <image>${image.registry}/tb-${project.artifactId}:${image.tag}</image>
+            </to>
+            <container>
+              <user>1000:1000</user>
+              <creationTime>USE_CURRENT_TIMESTAMP</creationTime>
+              <jvmFlags>
+                <jvmFlag>-XX:MaxRAMPercentage=75</jvmFlag>
+                <jvmFlag>-Djava.security.egd=file:/dev/./urandom</jvmFlag>
+              </jvmFlags>
+              <labels>
+                <org.opencontainers.image.source>https://github.com/sdhayanand/tb-legacy-simulators</org.opencontainers.image.source>
+              </labels>
+            </container>
+          </configuration>
+        </plugin>
+      </plugins>
+    </pluginManagement>
+  </build>
+</project>

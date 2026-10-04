@@ -1,0 +1,12 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+namespace: legacy
+resources:
+  - service.yaml
+  - statefulset.yaml
+configMapGenerator:
+  - name: ibm-mq-mqsc
+    files:
+      - 20-tb.mqsc
+generatorOptions:
+  disableNameSuffixHash: true

@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<configuration>
+  <include resource="org/springframework/boot/logging/logback/defaults.xml"/>
+
+  <!-- gcp profile: one JSON object per line, picked up by Cloud Logging with correlationId/orderId/eventId from MDC -->
+  <springProfile name="gcp">
+    <appender name="JSON" class="ch.qos.logback.core.ConsoleAppender">
+      <encoder class="net.logstash.logback.encoder.LogstashEncoder">
+        <includeMdcKeyName>correlationId</includeMdcKeyName>
+        <includeMdcKeyName>orderId</includeMdcKeyName>
+        <includeMdcKeyName>eventId</includeMdcKeyName>
+        <fieldNames>
+          <timestamp>timestamp</timestamp>
+          <message>message</message>
+          <level>severity</level>
+          <logger>logger</logger>
+          <thread>thread</thread>
+          <version>[ignore]</version>
+          <levelValue>[ignore]</levelValue>
+        </fieldNames>
+      </encoder>
+    </appender>
+    <root level="INFO">
+      <appender-ref ref="JSON"/>
+    </root>
+  </springProfile>
+
+  <springProfile name="!gcp">
+    <include resource="org/springframework/boot/logging/logback/console-appender.xml"/>
+    <root level="INFO">
+      <appender-ref ref="CONSOLE"/>
+    </root>
+  </springProfile>
+</configuration>

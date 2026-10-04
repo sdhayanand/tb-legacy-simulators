@@ -1,0 +1,9 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: legacy-oms-soap
+data:
+  SERVER_PORT: "8085"
+  SPRING_PROFILES_ACTIVE: "default"
+  # Bucket the nightly extract is written to by POST /admin/export-to-gcs (overridden per environment)
+  OMS_EXTRACT_BUCKET: ""

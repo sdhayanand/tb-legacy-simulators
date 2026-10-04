@@ -1,0 +1,97 @@
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: ibm-mq
+  labels:
+    app: ibm-mq
+spec:
+  serviceName: ibm-mq
+  replicas: 1
+  selector:
+    matchLabels:
+      app: ibm-mq
+  template:
+    metadata:
+      labels:
+        app: ibm-mq
+    spec:
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1001
+        fsGroup: 1001
+        seccompProfile:
+          type: RuntimeDefault
+      terminationGracePeriodSeconds: 30
+      containers:
+        - name: qmgr
+          # IBM MQ Advanced for Developers (free developer licence; LICENSE=accept required)
+          image: icr.io/ibm-messaging/mq:latest
+          imagePullPolicy: IfNotPresent
+          env:
+            - name: LICENSE
+              value: accept
+            - name: MQ_QMGR_NAME
+              value: QM1
+            - name: MQ_APP_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: ibm-mq
+                  key: app-password
+            - name: MQ_ADMIN_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: ibm-mq
+                  key: admin-password
+            - name: MQ_ENABLE_METRICS
+              value: "true"
+          ports:
+            - name: mq
+              containerPort: 1414
+            - name: console
+              containerPort: 9443
+            - name: metrics
+              containerPort: 9157
+          volumeMounts:
+            - name: data
+              mountPath: /mnt/mqm
+            - name: mqsc
+              mountPath: /etc/mqm/20-tb.mqsc
+              subPath: 20-tb.mqsc
+              readOnly: true
+          resources:
+            requests:
+              cpu: 500m
+              memory: 1Gi
+            limits:
+              cpu: "1"
+              memory: 2Gi
+          startupProbe:
+            exec:
+              command: ["chkmqstarted"]
+            periodSeconds: 10
+            failureThreshold: 30
+          readinessProbe:
+            exec:
+              command: ["chkmqready"]
+            periodSeconds: 10
+          livenessProbe:
+            exec:
+              command: ["chkmqhealthy"]
+            periodSeconds: 30
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop: ["ALL"]
+      volumes:
+        - name: mqsc
+          configMap:
+            name: ibm-mq-mqsc
+  volumeClaimTemplates:
+    - metadata:
+        name: data
+      spec:
+        accessModes: ["ReadWriteOnce"]
+        storageClassName: standard-rwo
+        resources:
+          requests:
+            storage: 2Gi

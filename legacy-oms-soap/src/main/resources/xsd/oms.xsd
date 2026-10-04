@@ -1,0 +1,213 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  Legacy OMS message vocabulary (contract-first).
+  This is the XML shape that TIBCO BusinessWorks publishes to EMS (TB.ORDERS.OUT), that the Oracle OMS
+  accepts over SOAP (SubmitOrder), and that the nightly extract file (<Orders>) uses.
+  Codes:
+    OrderType   R=Retail  T=Tailored  C=Custom  X=Rental  E=E-commerce
+    FulfillType P=Pickup/take-with  S=Ship  A=Alteration work order
+-->
+<xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema"
+           xmlns:tns="http://tailoredbrands.com/legacy/oms/v1"
+           targetNamespace="http://tailoredbrands.com/legacy/oms/v1"
+           elementFormDefault="qualified"
+           attributeFormDefault="unqualified"
+           version="1.0">
+
+  <!-- ===================== simple types ===================== -->
+
+  <xs:simpleType name="OrderTypeCode">
+    <xs:restriction base="xs:string">
+      <xs:enumeration value="R"/>
+      <xs:enumeration value="T"/>
+      <xs:enumeration value="C"/>
+      <xs:enumeration value="X"/>
+      <xs:enumeration value="E"/>
+    </xs:restriction>
+  </xs:simpleType>
+
+  <xs:simpleType name="FulfillTypeCode">
+    <xs:restriction base="xs:string">
+      <xs:enumeration value="P"/>
+      <xs:enumeration value="S"/>
+      <xs:enumeration value="A"/>
+    </xs:restriction>
+  </xs:simpleType>
+
+  <xs:simpleType name="StatusCode">
+    <xs:restriction base="xs:string">
+      <xs:enumeration value="NEW"/>
+      <xs:enumeration value="RELEASED"/>
+      <xs:enumeration value="IN_ALTERATION"/>
+      <xs:enumeration value="READY"/>
+      <xs:enumeration value="SHIPPED"/>
+      <xs:enumeration value="COMPLETE"/>
+      <xs:enumeration value="CANCELLED"/>
+    </xs:restriction>
+  </xs:simpleType>
+
+  <xs:simpleType name="OrderNbrType">
+    <xs:restriction base="xs:string">
+      <xs:minLength value="1"/>
+      <xs:maxLength value="20"/>
+    </xs:restriction>
+  </xs:simpleType>
+
+  <xs:simpleType name="StoreNbrType">
+    <xs:restriction base="xs:string">
+      <xs:pattern value="[0-9]{4}"/>
+    </xs:restriction>
+  </xs:simpleType>
+
+  <xs:simpleType name="SkuType">
+    <xs:restriction base="xs:string">
+      <xs:minLength value="1"/>
+      <xs:maxLength value="40"/>
+    </xs:restriction>
+  </xs:simpleType>
+
+  <xs:simpleType name="MoneyType">
+    <xs:restriction base="xs:decimal">
+      <xs:fractionDigits value="2"/>
+      <xs:minInclusive value="0"/>
+    </xs:restriction>
+  </xs:simpleType>
+
+  <!-- ===================== complex types ===================== -->
+
+  <xs:complexType name="Alteration">
+    <xs:sequence>
+      <xs:element name="Type" type="xs:string"/>
+      <xs:element name="MeasurementInches" type="xs:decimal" minOccurs="0"/>
+      <xs:element name="TailorShopNbr" type="xs:string" minOccurs="0"/>
+    </xs:sequence>
+  </xs:complexType>
+
+  <xs:complexType name="OrderLine">
+    <xs:sequence>
+      <xs:element name="LineNbr" type="xs:int"/>
+      <xs:element name="SKU" type="tns:SkuType"/>
+      <xs:element name="Qty" type="xs:int"/>
+      <xs:element name="Price" type="tns:MoneyType"/>
+      <xs:element name="FulfillType" type="tns:FulfillTypeCode"/>
+      <xs:element name="Alteration" type="tns:Alteration" minOccurs="0"/>
+    </xs:sequence>
+  </xs:complexType>
+
+  <xs:complexType name="Order">
+    <xs:sequence>
+      <!-- Assigned by the POS (store-ddmmyy-seq). Optional on submit: the OMS assigns one when blank. -->
+      <xs:element name="OrderNbr" type="tns:OrderNbrType" minOccurs="0"/>
+      <xs:element name="OrderType" type="tns:OrderTypeCode"/>
+      <xs:element name="StoreNbr" type="tns:StoreNbrType"/>
+      <xs:element name="CustNbr" type="xs:string" minOccurs="0"/>
+      <xs:element name="OrderDate" type="xs:date"/>
+      <!-- Rental (X) orders: wedding / prom event date -->
+      <xs:element name="EventDate" type="xs:date" minOccurs="0"/>
+      <xs:element name="Status" type="tns:StatusCode" minOccurs="0"/>
+      <xs:element name="Lines">
+        <xs:complexType>
+          <xs:sequence>
+            <xs:element name="Line" type="tns:OrderLine" maxOccurs="unbounded"/>
+          </xs:sequence>
+        </xs:complexType>
+      </xs:element>
+    </xs:sequence>
+  </xs:complexType>
+
+  <!-- ===================== root elements ===================== -->
+
+  <!-- A single legacy order: the payload TIBCO BW publishes on TB.ORDERS.OUT -->
+  <xs:element name="Order" type="tns:Order"/>
+
+  <!-- Cancellation notice published on TB.ORDERS.CANCEL -->
+  <xs:element name="OrderCancel">
+    <xs:complexType>
+      <xs:sequence>
+        <xs:element name="OrderNbr" type="tns:OrderNbrType"/>
+        <xs:element name="StoreNbr" type="tns:StoreNbrType"/>
+        <xs:element name="CancelDate" type="xs:date"/>
+        <xs:element name="Reason" type="xs:string" minOccurs="0"/>
+      </xs:sequence>
+    </xs:complexType>
+  </xs:element>
+
+  <!-- Nightly extract file format read by the Dataflow batch reconciliation -->
+  <xs:element name="Orders">
+    <xs:complexType>
+      <xs:sequence>
+        <xs:element ref="tns:Order" minOccurs="0" maxOccurs="unbounded"/>
+      </xs:sequence>
+      <xs:attribute name="ExtractDate" type="xs:date" use="optional"/>
+      <xs:attribute name="Count" type="xs:int" use="optional"/>
+    </xs:complexType>
+  </xs:element>
+
+  <!-- ===================== SOAP operations (Request/Response suffix convention) ===================== -->
+
+  <xs:element name="SubmitOrderRequest">
+    <xs:complexType>
+      <xs:sequence>
+        <xs:element ref="tns:Order"/>
+      </xs:sequence>
+    </xs:complexType>
+  </xs:element>
+
+  <xs:element name="SubmitOrderResponse">
+    <xs:complexType>
+      <xs:sequence>
+        <xs:element name="OrderNbr" type="tns:OrderNbrType"/>
+        <xs:element name="Status" type="tns:StatusCode"/>
+        <xs:element name="Message" type="xs:string" minOccurs="0"/>
+      </xs:sequence>
+    </xs:complexType>
+  </xs:element>
+
+  <xs:element name="GetOrderStatusRequest">
+    <xs:complexType>
+      <xs:sequence>
+        <xs:element name="OrderNbr" type="tns:OrderNbrType"/>
+      </xs:sequence>
+    </xs:complexType>
+  </xs:element>
+
+  <xs:element name="GetOrderStatusResponse">
+    <xs:complexType>
+      <xs:sequence>
+        <xs:element name="OrderNbr" type="tns:OrderNbrType"/>
+        <xs:element name="Status" type="tns:StatusCode"/>
+        <xs:element name="LastUpdated" type="xs:dateTime" minOccurs="0"/>
+        <xs:element ref="tns:Order" minOccurs="0"/>
+      </xs:sequence>
+    </xs:complexType>
+  </xs:element>
+
+  <xs:element name="ExportOrdersRequest">
+    <xs:complexType>
+      <xs:sequence>
+        <xs:element name="FromDate" type="xs:date"/>
+        <xs:element name="ToDate" type="xs:date"/>
+      </xs:sequence>
+    </xs:complexType>
+  </xs:element>
+
+  <xs:element name="ExportOrdersResponse">
+    <xs:complexType>
+      <xs:sequence>
+        <xs:element ref="tns:Orders"/>
+      </xs:sequence>
+    </xs:complexType>
+  </xs:element>
+
+  <!-- SOAP fault detail -->
+  <xs:element name="Fault">
+    <xs:complexType>
+      <xs:sequence>
+        <xs:element name="Code" type="xs:string"/>
+        <xs:element name="Message" type="xs:string"/>
+        <xs:element name="OrderNbr" type="xs:string" minOccurs="0"/>
+      </xs:sequence>
+    </xs:complexType>
+  </xs:element>
+
+</xs:schema>

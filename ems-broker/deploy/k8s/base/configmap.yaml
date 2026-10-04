@@ -1,0 +1,10 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: ems-broker
+data:
+  SERVER_PORT: "8086"
+  SPRING_PROFILES_ACTIVE: "default"
+  # TIBCO BW-style publisher: legacy XML orders per minute on TB.ORDERS.OUT (0 = only on demand)
+  PUBLISH_RATE_PER_MIN: "6"
+  ARTEMIS_ACCEPTOR_URL: "tcp://0.0.0.0:61616"

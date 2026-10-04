@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Sample 2: TAILORED (T) - suit plus two alteration work orders routed to the East Bay tailor shop. Store 0875 Dublin. -->
+<Order xmlns="http://tailoredbrands.com/legacy/oms/v1">
+  <OrderNbr>0875-261003-001204</OrderNbr>
+  <OrderType>T</OrderType>
+  <StoreNbr>0875</StoreNbr>
+  <CustNbr>C-77812</CustNbr>
+  <OrderDate>2026-10-03</OrderDate>
+  <Status>NEW</Status>
+  <Lines>
+    <Line>
+      <LineNbr>1</LineNbr>
+      <SKU>MW-SUIT-NAVY-42R</SKU>
+      <Qty>1</Qty>
+      <Price>599.99</Price>
+      <FulfillType>P</FulfillType>
+    </Line>
+    <Line>
+      <LineNbr>2</LineNbr>
+      <SKU>ALT-HEM-TROUSER</SKU>
+      <Qty>1</Qty>
+      <Price>25.00</Price>
+      <FulfillType>A</FulfillType>
+      <Alteration>
+        <Type>HEM</Type>
+        <MeasurementInches>31.5</MeasurementInches>
+        <TailorShopNbr>TS-EASTBAY</TailorShopNbr>
+      </Alteration>
+    </Line>
+    <Line>
+      <LineNbr>3</LineNbr>
+      <SKU>ALT-SLEEVE-JACKET</SKU>
+      <Qty>1</Qty>
+      <Price>45.00</Price>
+      <FulfillType>A</FulfillType>
+      <Alteration>
+        <Type>SLEEVE</Type>
+        <MeasurementInches>25.0</MeasurementInches>
+        <TailorShopNbr>TS-EASTBAY</TailorShopNbr>
+      </Alteration>
+    </Line>
+  </Lines>
+</Order>

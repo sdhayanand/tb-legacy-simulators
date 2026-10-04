@@ -1,0 +1,9 @@
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: ems-broker
+spec:
+  maxUnavailable: 1
+  selector:
+    matchLabels:
+      app: ems-broker

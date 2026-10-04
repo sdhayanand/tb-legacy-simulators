@@ -1,0 +1,21 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "tb-store-pos-simulator"
+version = "0.1.0"
+description = "Generates realistic Tailored Brands store POS orders and posts them to order-intake-api (REST) or as legacy SOAP SubmitOrderRequest envelopes."
+requires-python = ">=3.12"
+dependencies = ["httpx>=0.27,<1.0"]
+
+[project.scripts]
+pos-simulator = "pos_simulator.cli:main"
+
+[tool.setuptools]
+packages = ["pos_simulator"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["."]
+addopts = "-q"

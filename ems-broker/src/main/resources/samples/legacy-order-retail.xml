@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Sample 1: RETAIL (R) - walk-in customer, two take-with lines. Store 0412 Pleasanton. -->
+<Order xmlns="http://tailoredbrands.com/legacy/oms/v1">
+  <OrderNbr>0412-261003-000871</OrderNbr>
+  <OrderType>R</OrderType>
+  <StoreNbr>0412</StoreNbr>
+  <OrderDate>2026-10-03</OrderDate>
+  <Status>NEW</Status>
+  <Lines>
+    <Line>
+      <LineNbr>1</LineNbr>
+      <SKU>MW-SUIT-CHAR-40R</SKU>
+      <Qty>1</Qty>
+      <Price>549.99</Price>
+      <FulfillType>P</FulfillType>
+    </Line>
+    <Line>
+      <LineNbr>2</LineNbr>
+      <SKU>MW-SHIRT-WHT-16.5-34</SKU>
+      <Qty>2</Qty>
+      <Price>59.99</Price>
+      <FulfillType>P</FulfillType>
+    </Line>
+  </Lines>
+</Order>

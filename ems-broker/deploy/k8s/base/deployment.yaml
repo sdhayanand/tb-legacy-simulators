@@ -1,0 +1,66 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: ems-broker
+  labels:
+    app: ems-broker
+spec:
+  # A broker is a singleton: one replica, Recreate so two brokers never claim the same Service.
+  replicas: 1
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels:
+      app: ems-broker
+  template:
+    metadata:
+      labels:
+        app: ems-broker
+    spec:
+      serviceAccountName: ems-broker
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+        runAsGroup: 1000
+        fsGroup: 1000
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+        - name: ems-broker
+          image: ghcr.io/sdhayanand/tb-ems-broker:latest
+          imagePullPolicy: Always
+          ports:
+            - name: http
+              containerPort: 8086
+            - name: jms
+              containerPort: 61616
+          envFrom:
+            - configMapRef:
+                name: ems-broker
+          resources:
+            requests:
+              cpu: 250m
+              memory: 512Mi
+            limits:
+              cpu: "1"
+              memory: 1Gi
+          startupProbe:
+            httpGet:
+              path: /actuator/health/liveness
+              port: http
+            periodSeconds: 5
+            failureThreshold: 30
+          readinessProbe:
+            httpGet:
+              path: /actuator/health/readiness
+              port: http
+            periodSeconds: 10
+          livenessProbe:
+            httpGet:
+              path: /actuator/health/liveness
+              port: http
+            periodSeconds: 20
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop: ["ALL"]

@@ -1,0 +1,70 @@
+name: ci
+on: { push: { branches: [main] }, pull_request: {}, workflow_dispatch: {} }
+permissions: { contents: read, packages: write, id-token: write }
+
+env:
+  REGISTRY: ghcr.io/sdhayanand
+
+jobs:
+  build:
+    name: maven verify + python tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with: { distribution: temurin, java-version: '21', cache: maven }
+      # Unit tests (surefire) + integration tests (failsafe: ArtemisConsumerIT via Testcontainers). IbmMqConsumerIT is
+      # skipped here (RUN_MQ_IT unset) and runs in the mq-integration job below.
+      - run: mvn -B -ntp verify
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with: { name: test-reports, path: '**/target/surefire-reports/**,**/target/failsafe-reports/**' }
+
+      - uses: actions/setup-python@v5
+        with: { python-version: '3.12', cache: pip, cache-dependency-path: store-pos-simulator/requirements-dev.txt }
+      - name: python tests (store-pos-simulator)
+        working-directory: store-pos-simulator
+        run: |
+          sudo apt-get update -qq && sudo apt-get install -y -qq libxml2-utils   # xmllint for the XSD test
+          python -m pip install -q -r requirements-dev.txt
+          python -m pytest
+
+  mq-integration:
+    name: IBM MQ integration test (Testcontainers)
+    needs: build
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    env:
+      RUN_MQ_IT: "true"
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with: { distribution: temurin, java-version: '21', cache: maven }
+      - run: docker pull icr.io/ibm-messaging/mq:latest
+      - run: mvn -B -ntp -pl erp-mq-consumer -am verify -Dit.test=IbmMqConsumerIT -Dsurefire.failIfNoSpecifiedTests=false -Dfailsafe.failIfNoSpecifiedTests=false
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with: { name: mq-it-reports, path: 'erp-mq-consumer/target/failsafe-reports/**' }
+
+  images:
+    name: push images to GHCR
+    needs: build
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with: { distribution: temurin, java-version: '21', cache: maven }
+      - run: echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
+      - name: jib legacy-oms-soap
+        run: mvn -B -ntp -DskipTests -pl legacy-oms-soap -am jib:build -Dimage=${{ env.REGISTRY }}/tb-legacy-oms-soap:latest -Djib.to.tags=${{ github.sha }}
+      - name: jib ems-broker
+        run: mvn -B -ntp -DskipTests -pl ems-broker -am jib:build -Dimage=${{ env.REGISTRY }}/tb-ems-broker:latest -Djib.to.tags=${{ github.sha }}
+      - name: jib erp-mq-consumer
+        run: mvn -B -ntp -DskipTests -pl erp-mq-consumer -am jib:build -Dimage=${{ env.REGISTRY }}/tb-erp-mq-consumer:latest -Djib.to.tags=${{ github.sha }}
+      - name: docker store-pos-simulator
+        run: |
+          docker build -f store-pos-simulator/Dockerfile \
+            -t ${{ env.REGISTRY }}/tb-store-pos-simulator:latest \
+            -t ${{ env.REGISTRY }}/tb-store-pos-simulator:${{ github.sha }} .
+          docker push --all-tags ${{ env.REGISTRY }}/tb-store-pos-simulator

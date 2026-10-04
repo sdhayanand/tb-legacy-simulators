@@ -1,0 +1,59 @@
+# Every 10 minutes: 20 realistic POS orders from the simulated stores into order-intake-api (namespace otd).
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: store-pos-simulator
+  labels:
+    app: store-pos-simulator
+spec:
+  schedule: "*/10 * * * *"
+  concurrencyPolicy: Forbid
+  successfulJobsHistoryLimit: 3
+  failedJobsHistoryLimit: 3
+  startingDeadlineSeconds: 300
+  jobTemplate:
+    spec:
+      backoffLimit: 1
+      activeDeadlineSeconds: 540
+      ttlSecondsAfterFinished: 3600
+      template:
+        metadata:
+          labels:
+            app: store-pos-simulator
+        spec:
+          restartPolicy: Never
+          securityContext:
+            runAsNonRoot: true
+            runAsUser: 1000
+            runAsGroup: 1000
+            seccompProfile:
+              type: RuntimeDefault
+          containers:
+            - name: pos
+              image: ghcr.io/sdhayanand/tb-store-pos-simulator:latest
+              imagePullPolicy: Always
+              args: ["--count", "20", "--rate", "60", "--quiet"]
+              env:
+                - name: POS_TARGET
+                  value: "http://order-intake-api.otd.svc.cluster.local:8080"
+                - name: POS_MODE
+                  value: "rest"
+                # In-cluster calls bypass Apigee; set POS_API_KEY from a Secret when pointing at the Apigee proxy.
+                - name: POS_API_KEY
+                  valueFrom:
+                    secretKeyRef:
+                      name: pos-simulator
+                      key: api-key
+                      optional: true
+              resources:
+                requests:
+                  cpu: 50m
+                  memory: 64Mi
+                limits:
+                  cpu: 200m
+                  memory: 128Mi
+              securityContext:
+                allowPrivilegeEscalation: false
+                readOnlyRootFilesystem: true
+                capabilities:
+                  drop: ["ALL"]
