@@ -63,7 +63,7 @@ jobs:
       - uses: google-github-actions/setup-gcloud@v2
         with: { install_components: gke-gcloud-auth-plugin }
       - name: cluster credentials
-        run: gcloud container clusters get-credentials ${{ env.GKE_CLUSTER }} --region ${{ env.REGION }} --project ${{ vars.GCP_PROJECT_ID }}
+        run: gcloud container clusters get-credentials ${{ env.GKE_CLUSTER }} --region ${{ vars.GKE_LOCATION || 'us-east1' }} --project ${{ vars.GCP_PROJECT_ID }}
       - name: render overlays for this project
         run: |
           grep -rl PROJECT_ID --include='*.yaml' deploy legacy-oms-soap/deploy ems-broker/deploy erp-mq-consumer/deploy store-pos-simulator/k8s \
