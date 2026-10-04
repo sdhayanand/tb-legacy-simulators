@@ -57,11 +57,11 @@ jobs:
         with: { distribution: temurin, java-version: '21', cache: maven }
       - run: echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
       - name: jib legacy-oms-soap
-        run: mvn -B -ntp -DskipTests -pl legacy-oms-soap -am jib:build -Dimage=${{ env.REGISTRY }}/tb-legacy-oms-soap:latest -Djib.to.tags=${{ github.sha }}
+        run: mvn -B -ntp -DskipTests -pl legacy-oms-soap -am compile jib:build -Dimage=${{ env.REGISTRY }}/tb-legacy-oms-soap:latest -Djib.to.tags=${{ github.sha }}
       - name: jib ems-broker
-        run: mvn -B -ntp -DskipTests -pl ems-broker -am jib:build -Dimage=${{ env.REGISTRY }}/tb-ems-broker:latest -Djib.to.tags=${{ github.sha }}
+        run: mvn -B -ntp -DskipTests -pl ems-broker -am compile jib:build -Dimage=${{ env.REGISTRY }}/tb-ems-broker:latest -Djib.to.tags=${{ github.sha }}
       - name: jib erp-mq-consumer
-        run: mvn -B -ntp -DskipTests -pl erp-mq-consumer -am jib:build -Dimage=${{ env.REGISTRY }}/tb-erp-mq-consumer:latest -Djib.to.tags=${{ github.sha }}
+        run: mvn -B -ntp -DskipTests -pl erp-mq-consumer -am compile jib:build -Dimage=${{ env.REGISTRY }}/tb-erp-mq-consumer:latest -Djib.to.tags=${{ github.sha }}
       - name: docker store-pos-simulator
         run: |
           docker build -f store-pos-simulator/Dockerfile \

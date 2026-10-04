@@ -36,7 +36,7 @@ jobs:
       - name: jib (3 Java simulators)
         run: |
           for m in legacy-oms-soap ems-broker erp-mq-consumer; do
-            mvn -B -ntp -DskipTests -pl "$m" -am jib:build \
+            mvn -B -ntp -DskipTests -pl "$m" -am compile jib:build \
               -Dimage=${{ steps.vars.outputs.ar }}/$m:latest -Djib.to.tags=${{ github.sha }} \
               -Djib.to.auth.username=oauth2accesstoken \
               -Djib.to.auth.password=${{ steps.auth.outputs.access_token }}

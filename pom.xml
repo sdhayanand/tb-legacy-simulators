@@ -38,6 +38,7 @@
     <jaxb2-maven-plugin.version>3.2.0</jaxb2-maven-plugin.version>
     <ibm-mq-client.version>9.4.2.0</ibm-mq-client.version>
     <logstash-logback-encoder.version>8.1</logstash-logback-encoder.version>
+    <wsdl4j.version>1.6.3</wsdl4j.version>
     <maven-surefire-plugin.version>3.5.3</maven-surefire-plugin.version>
     <maven-failsafe-plugin.version>3.5.3</maven-failsafe-plugin.version>
 
@@ -72,6 +73,12 @@
         <artifactId>logstash-logback-encoder</artifactId>
         <version>${logstash-logback-encoder.version}</version>
       </dependency>
+      <!-- needed by Spring WS DefaultWsdl11Definition; pinned explicitly so the build does not rely on the Boot BOM managing it -->
+      <dependency>
+        <groupId>wsdl4j</groupId>
+        <artifactId>wsdl4j</artifactId>
+        <version>${wsdl4j.version}</version>
+      </dependency>
     </dependencies>
   </dependencyManagement>
 
@@ -93,6 +100,13 @@
           <groupId>org.apache.maven.plugins</groupId>
           <artifactId>maven-failsafe-plugin</artifactId>
           <version>${maven-failsafe-plugin.version}</version>
+          <configuration>
+            <!-- run against classes, not the repackaged Boot jar -->
+            <classesDirectory>${project.build.outputDirectory}</classesDirectory>
+            <includes>
+              <include>**/*IT.java</include>
+            </includes>
+          </configuration>
           <executions>
             <execution>
               <goals>
