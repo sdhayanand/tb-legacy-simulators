@@ -1,8 +1,7 @@
 name: deploy-gcp
 on:
-  workflow_dispatch: {}
-  push:
-    branches: [main]
+  # On demand (or via tb-platform-infra deploy-all) once the platform exists - pushes only run CI.
+  workflow_dispatch:
 permissions: { contents: read, id-token: write }
 
 # Repo variables set by tb-platform-infra bootstrap: GCP_PROJECT_ID, GCP_REGION, GKE_CLUSTER, AR_REPO
