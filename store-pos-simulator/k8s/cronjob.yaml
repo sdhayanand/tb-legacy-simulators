@@ -35,7 +35,7 @@ spec:
               args: ["--count", "20", "--rate", "60", "--quiet"]
               env:
                 - name: POS_TARGET
-                  value: "http://order-intake-api.otd.svc.cluster.local:8080"
+                  value: "http://order-intake-api.otd.svc.cluster.local"   # Service port 80 -> container 8080
                 - name: POS_MODE
                   value: "rest"
                 # In-cluster calls bypass Apigee; set POS_API_KEY from a Secret when pointing at the Apigee proxy.
