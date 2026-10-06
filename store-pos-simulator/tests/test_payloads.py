@@ -35,7 +35,7 @@ def test_intake_json_matches_canonical_contract(catalog):
     assert rental["orderType"] == "RENTAL" and rental["rental"]["eventDate"] > rental["promisedDate"]
 
     ecom = to_intake_json(gen.next("E"))
-    assert ecom["channel"] == "ECOM" and ecom["shipTo"]["country"] == "US"
+    assert ecom["channel"] == "WEB" and ecom["shipTo"]["country"] == "US"
     assert all(l["fulfillmentType"] == "SHIP_TO_HOME" for l in ecom["lines"])
 
 

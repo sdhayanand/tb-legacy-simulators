@@ -40,7 +40,7 @@ def to_intake_json(order: PosOrder) -> dict:
     payload: dict = {
         "orderId": order.order_nbr,
         "orderType": CANONICAL_TYPE[order.order_type],
-        "channel": "ECOM" if order.order_type == "E" else "STORE",
+        "channel": "WEB" if order.order_type == "E" else "STORE",  # canonical Channel enum: STORE, WEB, CALL_CENTER
         "storeId": order.store_nbr,
         "customerId": order.cust_nbr,
         "orderedAt": order.ordered_at.isoformat().replace("+00:00", "Z"),
@@ -54,10 +54,10 @@ def to_intake_json(order: PosOrder) -> dict:
     }
     if order.order_type == "X" and order.event_date is not None:
         payload["rental"] = {
+            "eventId": f"EVT-{order.order_nbr}",
             "eventDate": order.event_date.isoformat(),
-            "eventType": "WEDDING",
+            "returnDueDate": (order.event_date + timedelta(days=2)).isoformat(),
             "groupId": f"G-{order.store_nbr}-{order.order_nbr[-6:]}",
-            "returnDate": (order.event_date + timedelta(days=2)).isoformat(),
         }
     if order.order_type in ("E", "C"):
         payload["shipTo"] = {
